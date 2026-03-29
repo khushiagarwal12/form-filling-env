@@ -47,11 +47,12 @@ def root():
 # reset()
 # ─────────────────────────────────────────────
 @app.post("/reset")
-def reset(request: ResetRequest):
+def reset(task_id: int = 1, request: Optional[ResetRequest] = None):
     """Reset the environment for a given task and return initial observation."""
-    task_id = request.task_id
+    if request is not None:
+        task_id = request.task_id
     if task_id not in _envs:
-        raise HTTPException(status_code=400, detail=f"Invalid task_id: {task_id}. Must be 1, 2, or 3.")
+        raise HTTPException(status_code=400, detail=f"Invalid task_id: {task_id}")
     obs = _envs[task_id].reset()
     return obs.model_dump()
 
@@ -84,6 +85,24 @@ def state(task_id: int = 1):
     if task_id not in _envs:
         raise HTTPException(status_code=400, detail=f"Invalid task_id: {task_id}. Must be 1, 2, or 3.")
     return _envs[task_id].state()
+
+# ─────────────────────────────────────────────
+# task()
+# ─────────────────────────────────────────────
+@app.get("/task")
+def get_task(task_id: int = 1):
+    """Return task definition for a given task_id."""
+    if task_id not in _envs:
+        raise HTTPException(status_code=400, detail=f"Invalid task_id: {task_id}")
+    from tasks import ALL_TASKS
+    task = ALL_TASKS[task_id]
+    return {
+        "task_id": task["task_id"],
+        "difficulty": task["difficulty"],
+        "description": task["description"],
+        "form_fields": task["form_fields"],
+        "instructions": task["instructions"]
+    }
 
 
 # ─────────────────────────────────────────────
