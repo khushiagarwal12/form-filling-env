@@ -3,7 +3,7 @@ FastAPI server for the Form Filling Assistant OpenEnv environment.
 Exposes /reset, /step, /state endpoints as required by the OpenEnv spec.
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Any, Dict, Optional
@@ -17,7 +17,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Global env instances — one per task
 _envs: Dict[int, FormFillingEnv] = {
     1: FormFillingEnv(task_id=1),
     2: FormFillingEnv(task_id=2),
@@ -28,6 +27,9 @@ _envs: Dict[int, FormFillingEnv] = {
 class ResetRequest(BaseModel):
     task_id: int = 1
 
+    class Config:
+        extra = "allow"
+
 
 class StepRequest(BaseModel):
     task_id: int = 1
@@ -35,31 +37,28 @@ class StepRequest(BaseModel):
     field_value: Any
 
 
-# ─────────────────────────────────────────────
-# Health check
-# ─────────────────────────────────────────────
 @app.get("/")
 def root():
     return {"status": "ok", "environment": "Form Filling Assistant", "tasks": [1, 2, 3]}
 
 
-# ─────────────────────────────────────────────
-# reset()
-# ─────────────────────────────────────────────
 @app.post("/reset")
-def reset(task_id: int = 1, request: Optional[ResetRequest] = None):
-    """Reset the environment for a given task and return initial observation."""
-    if request is not None:
-        task_id = request.task_id
+async def reset(request: Request, task_id: int = 1):
+    """Reset the environment. Accepts empty body, JSON body, or query param."""
+    try:
+        body = await request.json()
+        if isinstance(body, dict) and "task_id" in body:
+            task_id = int(body["task_id"])
+    except:
+        pass
+
     if task_id not in _envs:
-        raise HTTPException(status_code=400, detail=f"Invalid task_id: {task_id}")
+        task_id = 1
+
     obs = _envs[task_id].reset()
     return obs.model_dump()
 
 
-# ─────────────────────────────────────────────
-# step()
-# ─────────────────────────────────────────────
 @app.post("/step")
 def step(request: StepRequest):
     """Agent fills one field. Returns observation, reward, done, info."""
@@ -76,9 +75,6 @@ def step(request: StepRequest):
     return result.model_dump()
 
 
-# ─────────────────────────────────────────────
-# state()
-# ─────────────────────────────────────────────
 @app.get("/state")
 def state(task_id: int = 1):
     """Return the full current state of the environment."""
@@ -86,14 +82,12 @@ def state(task_id: int = 1):
         raise HTTPException(status_code=400, detail=f"Invalid task_id: {task_id}. Must be 1, 2, or 3.")
     return _envs[task_id].state()
 
-# ─────────────────────────────────────────────
-# task()
-# ─────────────────────────────────────────────
+
 @app.get("/task")
 def get_task(task_id: int = 1):
     """Return task definition for a given task_id."""
     if task_id not in _envs:
-        raise HTTPException(status_code=400, detail=f"Invalid task_id: {task_id}")
+        task_id = 1
     from tasks import ALL_TASKS
     task = ALL_TASKS[task_id]
     return {
@@ -105,9 +99,6 @@ def get_task(task_id: int = 1):
     }
 
 
-# ─────────────────────────────────────────────
-# final_score()
-# ─────────────────────────────────────────────
 @app.get("/score")
 def score(task_id: int = 1):
     """Return the final graded score for the current episode."""
