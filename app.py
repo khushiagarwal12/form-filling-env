@@ -14,7 +14,7 @@ from models import Action
 app = FastAPI(
     title="Form Filling Assistant — OpenEnv",
     description="An AI environment where agents learn to fill real-world forms from messy user profiles.",
-    version="1.0.0"
+    version="1.0.2"
 )
 
 _envs: Dict[int, FormFillingEnv] = {
