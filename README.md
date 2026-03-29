@@ -105,21 +105,20 @@ curl http://localhost:7860/state?task_id=1
 ## 🤖 Baseline Inference
 
 ```bash
-export API_BASE_URL="https://api.openai.com/v1"
-export MODEL_NAME="gpt-4o-mini"
-export HF_TOKEN="your-api-key"
+set API_BASE_URL=https://api.groq.com/openai/v1
+set MODEL_NAME=llama-3.3-70b-versatile
+set HF_TOKEN= -groq-api-key
 python inference.py
 ```
 
-### Baseline Scores (gpt-4o-mini)
+### Baseline Scores (llama-3.3-70b-versatile via Groq)
 
 | Task | Difficulty | Score |
 |---|---|---|
-| Task 1 | Easy | ~0.95 |
-| Task 2 | Medium | ~0.82 |
-| Task 3 | Hard | ~0.68 |
-| **Average** | | **~0.82** |
-
+| Task 1 | Easy | 1.0000 |
+| Task 2 | Medium | 0.8571 |
+| Task 3 | Hard | 1.0000 |
+| **Average** | | **0.9524** |
 ---
 
 ## 📁 Project Structure
