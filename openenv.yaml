@@ -1,0 +1,84 @@
+name: form-filling-assistant
+version: "1.0.0"
+description: >
+  An OpenEnv environment where an AI agent learns to fill real-world forms
+  (contact forms, job applications, KYC forms) by extracting information
+  from messy natural language user profiles.
+
+tags:
+  - openenv
+  - nlp
+  - information-extraction
+  - form-filling
+  - real-world
+
+author: hackathon-submission
+
+tasks:
+  - id: 1
+    name: contact_form
+    difficulty: easy
+    description: Fill a 4-field contact form from a clean user profile
+    fields: 4
+    max_score: 1.0
+
+  - id: 2
+    name: job_application
+    difficulty: medium
+    description: Fill a 7-field job application form from a resume-style profile
+    fields: 7
+    max_score: 1.0
+
+  - id: 3
+    name: kyc_form
+    difficulty: hard
+    description: Fill a 10-field multi-section KYC form with strict validation rules
+    fields: 10
+    max_score: 1.0
+
+observation_space:
+  type: object
+  properties:
+    form_fields:
+      type: dict
+      description: Map of field_name -> expected_type
+    filled_fields:
+      type: dict
+      description: Fields filled so far in this episode
+    user_profile:
+      type: string
+      description: Raw natural language text describing the user
+    task_id:
+      type: integer
+    instructions:
+      type: string
+    remaining_fields:
+      type: integer
+
+action_space:
+  type: object
+  properties:
+    field_name:
+      type: string
+      description: Name of the form field to fill
+    field_value:
+      type: any
+      description: Value to fill in the field
+
+reward:
+  type: float
+  range: [0.0, 1.0]
+  description: >
+    Per-step reward = field_score / total_fields.
+    Partial credit given for approximate matches (e.g. skills list).
+    Penalty of -0.1 for filling invalid field names.
+
+endpoints:
+  reset: POST /reset
+  step: POST /step
+  state: GET /state
+  score: GET /score
+
+runtime:
+  port: 7860
+  framework: fastapi
