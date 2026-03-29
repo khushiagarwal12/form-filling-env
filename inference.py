@@ -9,8 +9,8 @@ Reads credentials from environment variables:
 
 Usage:
     export API_BASE_URL="https://api.openai.com/v1"
-    export MODEL_NAME="gpt-4o-mini"
-    export HF_TOKEN="your-api-key"
+    export MODEL_NAME="llama-3.3-70b-versatile"
+    export HF_TOKEN="gorq-api-key"
     python inference.py
 """
 
