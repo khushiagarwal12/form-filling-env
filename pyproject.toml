@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-serve = "server.app:app"
+server = "server.app:main"
 
 [project.urls]
 Homepage = "https://huggingface.co/spaces/khushiagarwal12/form-filling-env"
