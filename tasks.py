@@ -4,15 +4,12 @@ Each task has:
 - A form definition (fields + expected types)
 - A user profile (messy raw text)
 - Ground truth answers
-- A grader function that scores 0.0–1.0
+- A grader function that scores 0.0-1.0
 """
 
 from typing import Dict, Any
 
 
-# ─────────────────────────────────────────────
-# TASK 1 — Easy: Simple Contact Form
-# ─────────────────────────────────────────────
 TASK_1 = {
     "task_id": 1,
     "difficulty": "easy",
@@ -40,20 +37,17 @@ TASK_1 = {
     )
 }
 
-# ─────────────────────────────────────────────
-# TASK 2 — Medium: Job Application Form
-# ─────────────────────────────────────────────
 TASK_2 = {
     "task_id": 2,
     "difficulty": "medium",
     "description": "Fill a job application form from a messy resume-style profile.",
     "form_fields": {
         "full_name": "str",
-        "date_of_birth": "str",       # expected: YYYY-MM-DD
+        "date_of_birth": "str",
         "highest_education": "str",
         "years_of_experience": "int",
         "current_job_title": "str",
-        "skills": "str",              # comma-separated
+        "skills": "str",
         "city": "str"
     },
     "user_profile": (
@@ -81,35 +75,32 @@ TASK_2 = {
     )
 }
 
-# ─────────────────────────────────────────────
-# TASK 3 — Hard: Multi-section KYC Form
-# ─────────────────────────────────────────────
 TASK_3 = {
     "task_id": 3,
     "difficulty": "hard",
-    "description": "Fill a multi-section KYC (Know Your Customer) form with validation rules.",
+    "description": "Fill a multi-section KYC form with contradictory info and implicit values.",
     "form_fields": {
-        # Personal
         "full_name": "str",
-        "date_of_birth": "str",       # YYYY-MM-DD
-        "gender": "str",              # male/female/other
+        "date_of_birth": "str",
+        "gender": "str",
         "nationality": "str",
-        # Contact
         "email": "str",
         "phone": "str",
         "address": "str",
-        # Financial
-        "annual_income": "int",       # in INR, numeric only
-        "employment_type": "str",     # salaried/self-employed/unemployed
-        "pan_number": "str",          # format: ABCDE1234F (10 chars)
+        "annual_income": "int",
+        "employment_type": "str",
+        "pan_number": "str",
     },
     "user_profile": (
-        "Full Name: Kavya Nair | DOB: 7 July 1990 | Female | Indian citizen. "
-        "Email: kavya.nair@outlook.com, Phone: 9845012345. "
-        "Address: 42, MG Road, Kochi, Kerala - 682001. "
-        "She works as a freelance graphic designer (self-employed). "
-        "Annual earnings roughly around 8 lakhs per year. "
-        "PAN: BXYPK7823G"
+        "Hi, I'm Kavya Nair — though my friends call me Kay. "
+        "I was born in the summer of 1990, specifically the 7th of July. "
+        "You can reach me at kavya.nair@outlook.com — NOT my old id kavya1990@yahoo.com which I no longer use. "
+        "My number is 9845012345 but my sister's number 9880001234 is sometimes listed under my name — please use mine. "
+        "I live at 42, MG Road, Kochi, Kerala - 682001. "
+        "I'm a freelance graphic designer — so self-employed. "
+        "Last year I made somewhere between 7.5 and 8.5 lakhs, let's say roughly 8 lakhs. "
+        "I'm Indian, female. "
+        "My PAN is BXYPK7823G but my husband's PAN is ZZZZZ9999Z — make sure you use mine. "
     ),
     "ground_truth": {
         "full_name": "kavya nair",
@@ -124,12 +115,13 @@ TASK_3 = {
         "pan_number": "BXYPK7823G"
     },
     "instructions": (
-        "Fill all 10 fields of this KYC form carefully. Rules: "
-        "1) date_of_birth must be YYYY-MM-DD format. "
-        "2) gender must be one of: male/female/other. "
-        "3) annual_income must be an integer in INR (8 lakhs = 800000). "
-        "4) employment_type must be: salaried/self-employed/unemployed. "
-        "5) pan_number must be exactly 10 characters in format ABCDE1234F. "
+        "Fill all 10 fields carefully. Watch out for: "
+        "1) Multiple email addresses — use the current one. "
+        "2) Multiple phone numbers — use the applicant's own. "
+        "3) Multiple PAN numbers — use the applicant's own. "
+        "4) Income given as a range — use the midpoint as an integer in INR. "
+        "5) Date of birth given descriptively — convert to YYYY-MM-DD. "
+        "6) employment_type must be: salaried/self-employed/unemployed. "
         "Fill one field at a time."
     )
 }
@@ -137,29 +129,19 @@ TASK_3 = {
 ALL_TASKS = {1: TASK_1, 2: TASK_2, 3: TASK_3}
 
 
-# ─────────────────────────────────────────────
-# Grader — scores a filled form 0.0 to 1.0
-# ─────────────────────────────────────────────
-
 def normalize(value: Any) -> str:
-    """Normalize a value for comparison: lowercase string, strip spaces."""
     if value is None:
         return ""
     return str(value).lower().strip().replace("  ", " ")
 
 
 def grade_field(field_name: str, agent_value: Any, truth_value: Any, task_id: int) -> float:
-    """
-    Score a single field. Returns 1.0 (correct), 0.5 (partial), or 0.0 (wrong).
-    """
     agent_norm = normalize(agent_value)
     truth_norm = normalize(truth_value)
 
-    # Exact match
     if agent_norm == truth_norm:
         return 1.0
 
-    # Numeric fields — allow ±5% tolerance
     if field_name in ("years_of_experience", "annual_income"):
         try:
             a = float(agent_norm.replace(",", ""))
@@ -169,7 +151,6 @@ def grade_field(field_name: str, agent_value: Any, truth_value: Any, task_id: in
         except ValueError:
             pass
 
-    # Skills — partial credit for each correct skill
     if field_name == "skills":
         agent_skills = set(s.strip() for s in agent_norm.split(","))
         truth_skills = set(s.strip() for s in truth_norm.split(","))
@@ -178,16 +159,12 @@ def grade_field(field_name: str, agent_value: Any, truth_value: Any, task_id: in
         overlap = len(agent_skills & truth_skills)
         return round(overlap / len(truth_skills), 2)
 
-    # Phone — strip non-digits
     if field_name == "phone":
         agent_digits = "".join(filter(str.isdigit, agent_norm))
         truth_digits = "".join(filter(str.isdigit, truth_norm))
         return 1.0 if agent_digits == truth_digits else 0.0
 
-    # Date — accept common alternate formats
     if field_name == "date_of_birth":
-        # Already checked exact match above
-        # Try partial: at least year and month correct
         parts_a = agent_norm.replace("/", "-").replace(".", "-").split("-")
         parts_t = truth_norm.split("-")
         if len(parts_a) == 3 and len(parts_t) == 3:
@@ -199,7 +176,6 @@ def grade_field(field_name: str, agent_value: Any, truth_value: Any, task_id: in
             elif year_ok and month_ok:
                 return 0.5
 
-    # Partial string match for address (long fields)
     if field_name == "address":
         words_agent = set(agent_norm.split())
         words_truth = set(truth_norm.split())
@@ -213,10 +189,6 @@ def grade_field(field_name: str, agent_value: Any, truth_value: Any, task_id: in
 
 
 def grade_submission(task_id: int, filled_fields: Dict[str, Any]) -> float:
-    """
-    Grade a fully (or partially) filled form.
-    Returns a score between 0.0 and 1.0.
-    """
     task = ALL_TASKS[task_id]
     ground_truth = task["ground_truth"]
     total_fields = len(ground_truth)
