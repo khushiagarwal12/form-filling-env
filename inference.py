@@ -31,10 +31,19 @@ HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("API_KEY", "")
 if not HF_TOKEN:
     raise EnvironmentError("HF_TOKEN environment variable is not set.")
 
-client = OpenAI(
-    api_key=HF_TOKEN,
-    base_url=API_BASE_URL
-)
+try:
+    client = OpenAI(
+        api_key=HF_TOKEN,
+        base_url=API_BASE_URL
+    )
+except TypeError:
+    # older openai versions don't support proxies kwarg
+    import httpx
+    client = OpenAI(
+        api_key=HF_TOKEN,
+        base_url=API_BASE_URL,
+        http_client=httpx.Client()
+    )
 
 # ─────────────────────────────────────────────
 # System prompt for the agent
