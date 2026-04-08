@@ -105,11 +105,11 @@ Pick ONE remaining field and fill it. Output only JSON."""
 def run_task(task_id: int) -> float:
     """
     Run the baseline agent on a single task.
-    Returns the final score (0.0–1.0).
+    Returns the final score (0.0-1.0).
     """
-    print(f"\n{'='*50}")
-    print(f"Running Task {task_id}")
-    print(f"{'='*50}")
+    task_name = f"task_{task_id}"
+
+    print(f"[START] task={task_name}", flush=True)
 
     env = FormFillingEnv(task_id=task_id)
     obs = env.reset()
@@ -149,11 +149,11 @@ def run_task(task_id: int) -> float:
             field_value = action_data["field_value"]
 
         except (json.JSONDecodeError, KeyError) as e:
-            print(f"  Step {step}: Failed to parse LLM response — {e}")
-            print(f"  Raw response: {raw[:200]}")
+            print(f"  Step {step}: Failed to parse LLM response - {e}", flush=True)
+            print(f"  Raw response: {raw[:200]}", flush=True)
             continue
         except Exception as e:
-            print(f"  Step {step}: LLM call failed — {e}")
+            print(f"  Step {step}: LLM call failed - {e}", flush=True)
             break
 
         # Take step in environment
@@ -164,35 +164,31 @@ def run_task(task_id: int) -> float:
         filled_so_far = obs_dict["filled_fields"]
         done = result.done
 
-        status = "✓" if result.reward.correct else "✗"
-        print(f"  Step {step}: [{status}] {field_name} = '{field_value}' | reward={result.reward.score:.4f} | cumulative={result.reward.cumulative_score:.4f}")
-        print(f"         {result.reward.message}")
+        reward = result.reward.score
+
+        print(f"[STEP] step={step} reward={reward:.4f}", flush=True)
 
         time.sleep(0.3)  # Avoid rate limiting
 
     final = env.final_score()
-    print(f"\nTask {task_id} Final Score: {final:.4f}")
+    print(f"[END] task={task_name} score={final:.4f} steps={step}", flush=True)
     return final
 
 
 # ─────────────────────────────────────────────
-# Main — run all 3 tasks and report
+# Main - run all 3 tasks and report
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
-    print("Form Filling Assistant — Baseline Inference")
-    print(f"Model: {MODEL_NAME}")
-    print(f"API Base: {API_BASE_URL}")
-
     scores = {}
     for task_id in [1, 2, 3]:
         scores[task_id] = run_task(task_id)
 
-    print(f"\n{'='*50}")
-    print("FINAL BASELINE SCORES")
-    print(f"{'='*50}")
-    print(f"  Task 1 (Easy):   {scores[1]:.4f}")
-    print(f"  Task 2 (Medium): {scores[2]:.4f}")
-    print(f"  Task 3 (Hard):   {scores[3]:.4f}")
+    print(f"\n{'='*50}", flush=True)
+    print("FINAL BASELINE SCORES", flush=True)
+    print(f"{'='*50}", flush=True)
+    print(f"  Task 1 (Easy):   {scores[1]:.4f}", flush=True)
+    print(f"  Task 2 (Medium): {scores[2]:.4f}", flush=True)
+    print(f"  Task 3 (Hard):   {scores[3]:.4f}", flush=True)
     avg = sum(scores.values()) / len(scores)
-    print(f"  Average:         {avg:.4f}")
-    print(f"{'='*50}")
+    print(f"  Average:         {avg:.4f}", flush=True)
+    print(f"{'='*50}", flush=True)
