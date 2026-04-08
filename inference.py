@@ -26,10 +26,12 @@ from models import Action
 # ─────────────────────────────────────────────
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
-HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+HF_TOKEN = os.getenv("HF_TOKEN")
+# Optional – if you use from_docker_image():
+LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
 
 if not HF_TOKEN:
-    raise EnvironmentError("HF_TOKEN (or API_KEY) environment variable is not set.")
+    raise EnvironmentError("HF_TOKEN environment variable is not set.")
 
 # Initialize the client for compatibility
 client = None
@@ -171,6 +173,8 @@ def run_task(task_id: int) -> float:
         time.sleep(0.3)  # Avoid rate limiting
 
     final = env.final_score()
+    # Clamp to strictly (0, 1) as required by the validator
+    final = max(1e-6, min(final, 1 - 1e-6))
     print(f"[END] task={task_name} score={final:.4f} steps={step}", flush=True)
     return final
 
