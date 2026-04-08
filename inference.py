@@ -24,12 +24,12 @@ from models import Action
 # ─────────────────────────────────────────────
 # Load credentials from environment variables
 # ─────────────────────────────────────────────
-API_BASE_URL = os.getenv("API_BASE_URL") or os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-MODEL_NAME = os.getenv("MODEL_NAME") or "gpt-4o-mini"
-HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("API_KEY") or ""
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
+HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 
 if not HF_TOKEN:
-    raise EnvironmentError("HF_TOKEN environment variable is not set.")
+    raise EnvironmentError("HF_TOKEN (or API_KEY) environment variable is not set.")
 
 # Initialize the client for compatibility
 client = None
