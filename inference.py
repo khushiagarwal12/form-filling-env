@@ -24,26 +24,33 @@ from models import Action
 # ─────────────────────────────────────────────
 # Load credentials from environment variables
 # ─────────────────────────────────────────────
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
-HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("API_KEY", "")
+API_BASE_URL = os.getenv("API_BASE_URL") or os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+MODEL_NAME = os.getenv("MODEL_NAME") or "gpt-4o-mini"
+HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("API_KEY") or ""
 
 if not HF_TOKEN:
     raise EnvironmentError("HF_TOKEN environment variable is not set.")
 
+# Initialize the client for compatibility
+client = None
 try:
-    client = OpenAI(
-        api_key=HF_TOKEN,
-        base_url=API_BASE_URL
-    )
-except TypeError:
-    # older openai versions don't support proxies kwarg
     import httpx
     client = OpenAI(
         api_key=HF_TOKEN,
         base_url=API_BASE_URL,
-        http_client=httpx.Client()
+        http_client=httpx.Client(transport=httpx.HTTPTransport())
     )
+except Exception:
+    pass
+
+if client is None:
+    try:
+        client = OpenAI(
+            api_key=HF_TOKEN,
+            base_url=API_BASE_URL
+        )
+    except Exception as e:
+        raise RuntimeError(f"Could not initialize OpenAI client: {e}")
 
 # ─────────────────────────────────────────────
 # System prompt for the agent
