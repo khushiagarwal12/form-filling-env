@@ -175,7 +175,7 @@ def run_task(task_id: int) -> float:
     final = env.final_score()
     # Clamp to strictly (0, 1) as required by the validator
     final = max(1e-6, min(final, 1 - 1e-6))
-    print(f"[END] task={task_name} score={final:.4f} steps={step}", flush=True)
+    print(f"[END] task={task_name} score={final:.6f} steps={step}", flush=True)
     return final
 
 
