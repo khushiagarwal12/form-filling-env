@@ -188,20 +188,28 @@ def grade_field(field_name: str, agent_value: Any, truth_value: Any, task_id: in
     return 0.0
 
 
-def grade_submission(task_id: int, filled_fields: Dict[str, Any]) -> float:
-    task = ALL_TASKS[task_id]
-    ground_truth = task["ground_truth"]
-    total_fields = len(ground_truth)
-
-    if total_fields == 0:
-        return 1e-6
-
-    total_score = 0.0
-    for field_name, truth_value in ground_truth.items():
-        agent_value = filled_fields.get(field_name, None)
-        field_score = grade_field(field_name, agent_value, truth_value, task_id)
-        total_score += field_score
-
-    raw = round(total_score / total_fields, 4)
-    # Scores must be strictly between 0 and 1 (not 0.0, not 1.0)
-    return max(1e-6, min(raw, 1 - 1e-6))
+    def grade_submission(task_id: int, filled_fields: Dict[str, Any]) -> float:
+        task = ALL_TASKS[task_id]
+        ground_truth = task["ground_truth"]
+        total_fields = len(ground_truth)
+    
+        if total_fields == 0:
+            return 1e-6
+    
+        total_score = 0.0
+        for field_name, truth_value in ground_truth.items():
+            agent_value = filled_fields.get(field_name, None)
+            field_score = grade_field(field_name, agent_value, truth_value, task_id)
+            total_score += field_score
+    
+        raw = total_score / total_fields
+    
+        EPS = 1e-6
+    
+        # Force strictly inside (0,1)
+        if raw <= 0.0:
+            return EPS
+        if raw >= 1.0:
+            return 1 - EPS
+    
+        return raw
