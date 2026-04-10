@@ -1,10 +1,5 @@
 """
 Three tasks for the Form Filling Assistant environment.
-Each task has:
-- A form definition (fields + expected types)
-- A user profile (messy raw text)
-- Ground truth answers
-- A grader function that scores 0.0-1.0
 """
 
 from typing import Dict, Any
@@ -128,6 +123,8 @@ TASK_3 = {
 
 ALL_TASKS = {1: TASK_1, 2: TASK_2, 3: TASK_3}
 
+EPS = 1e-6
+
 
 def normalize(value: Any) -> str:
     if value is None:
@@ -188,28 +185,30 @@ def grade_field(field_name: str, agent_value: Any, truth_value: Any, task_id: in
     return 0.0
 
 
-    def grade_submission(task_id: int, filled_fields: Dict[str, Any]) -> float:
-        task = ALL_TASKS[task_id]
-        ground_truth = task["ground_truth"]
-        total_fields = len(ground_truth)
-    
-        if total_fields == 0:
-            return 1e-6
-    
-        total_score = 0.0
-        for field_name, truth_value in ground_truth.items():
-            agent_value = filled_fields.get(field_name, None)
-            field_score = grade_field(field_name, agent_value, truth_value, task_id)
-            total_score += field_score
-    
-        raw = total_score / total_fields
-    
-        EPS = 1e-6
-    
-        # Force strictly inside (0,1)
-        if raw <= 0.0:
-            return EPS
-        if raw >= 1.0:
-            return 1 - EPS
-    
-        return raw
+def grade_submission(task_id: int, filled_fields: Dict[str, Any]) -> float:
+    """
+    Grade a fully or partially filled form.
+    Returns a score strictly between 0.0 and 1.0 (exclusive).
+    """
+    task = ALL_TASKS[task_id]
+    ground_truth = task["ground_truth"]
+    total_fields = len(ground_truth)
+
+    if total_fields == 0:
+        return EPS
+
+    total_score = 0.0
+    for field_name, truth_value in ground_truth.items():
+        agent_value = filled_fields.get(field_name, None)
+        field_score = grade_field(field_name, agent_value, truth_value, task_id)
+        total_score += field_score
+
+    raw = total_score / total_fields
+
+    # Force strictly inside (0, 1) — validator requires this
+    if raw <= 0.0:
+        return EPS
+    if raw >= 1.0:
+        return 1.0 - EPS
+
+    return raw
