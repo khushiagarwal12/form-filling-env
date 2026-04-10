@@ -27,13 +27,12 @@ from models import Action
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 HF_TOKEN = os.getenv("HF_TOKEN")
-# Optional – if you use from_docker_image():
 LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
 
 if not HF_TOKEN:
     raise EnvironmentError("HF_TOKEN environment variable is not set.")
 
-# Initialize the client for compatibility
+# Initialize the client
 client = None
 try:
     import httpx
@@ -107,7 +106,7 @@ Pick ONE remaining field and fill it. Output only JSON."""
 def run_task(task_id: int) -> float:
     """
     Run the baseline agent on a single task.
-    Returns the final score (0.0-1.0).
+    Returns the final score (strictly between 0 and 1).
     """
     task_name = f"task_{task_id}"
 
@@ -121,7 +120,7 @@ def run_task(task_id: int) -> float:
     filled_so_far = {}
     done = False
     step = 0
-    max_steps = total_fields + 3  # small buffer for retries
+    max_steps = total_fields + 3  # buffer for retries
 
     while not done and step < max_steps:
         step += 1
@@ -141,7 +140,6 @@ def run_task(task_id: int) -> float:
             raw = response.choices[0].message.content.strip()
 
             # Parse JSON action
-            # Strip markdown code fences if present
             if raw.startswith("```"):
                 raw = raw.split("```")[1]
                 if raw.startswith("json"):
@@ -167,13 +165,12 @@ def run_task(task_id: int) -> float:
         done = result.done
 
         reward = result.reward.score
-
         print(f"[STEP] step={step} reward={reward:.4f}", flush=True)
 
         time.sleep(0.3)  # Avoid rate limiting
 
     final = env.final_score()
-    # Clamp to strictly (0, 1) as required by the validator
+    # Clamp to strictly (0, 1)
     final = max(1e-6, min(final, 1 - 1e-6))
     print(f"[END] task={task_name} score={final:.6f} steps={step}", flush=True)
     return final
@@ -186,13 +183,17 @@ if __name__ == "__main__":
     scores = {}
     for task_id in [1, 2, 3]:
         scores[task_id] = run_task(task_id)
+        # Clamp again before printing summary
+        scores[task_id] = max(1e-6, min(scores[task_id], 1 - 1e-6))
+
+    avg = sum(scores.values()) / len(scores)
+    avg = max(1e-6, min(avg, 1 - 1e-6))
 
     print(f"\n{'='*50}", flush=True)
     print("FINAL BASELINE SCORES", flush=True)
     print(f"{'='*50}", flush=True)
-    print(f"  Task 1 (Easy):   {scores[1]:.4f}", flush=True)
-    print(f"  Task 2 (Medium): {scores[2]:.4f}", flush=True)
-    print(f"  Task 3 (Hard):   {scores[3]:.4f}", flush=True)
-    avg = sum(scores.values()) / len(scores)
-    print(f"  Average:         {avg:.4f}", flush=True)
+    print(f"  Task 1 (Easy):   {scores[1]:.6f}", flush=True)
+    print(f"  Task 2 (Medium): {scores[2]:.6f}", flush=True)
+    print(f"  Task 3 (Hard):   {scores[3]:.6f}", flush=True)
+    print(f"  Average:         {avg:.6f}", flush=True)
     print(f"{'='*50}", flush=True)
