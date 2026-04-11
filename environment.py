@@ -6,6 +6,9 @@ from typing import Any, Dict
 from models import Observation, Action, Reward, StepResult
 from tasks import ALL_TASKS, grade_field, grade_submission
 
+MIN_SCORE = 0.1
+MAX_SCORE = 0.9
+
 
 class FormFillingEnv:
     def __init__(self, task_id: int = 1):
@@ -37,12 +40,11 @@ class FormFillingEnv:
         ground_truth = self._task["ground_truth"]
         total_fields = len(ground_truth)
 
-        # Invalid field
         if field_name not in valid_fields:
             reward = Reward(
-                score=0.0,
+                score=MIN_SCORE,
                 correct=False,
-                message=f"'{field_name}' is not valid",
+                message=f"'{field_name}' is not a valid field",
                 cumulative_score=self._cumulative_score
             )
             return StepResult(
@@ -56,14 +58,13 @@ class FormFillingEnv:
         field_score = grade_field(field_name, field_value, truth_value, self.task_id)
 
         step_reward = field_score / total_fields
-        self._cumulative_score = min(self._cumulative_score + step_reward, 1.0)
-
+        self._cumulative_score = min(self._cumulative_score + step_reward, MAX_SCORE)
         self._filled[field_name] = field_value
 
         reward = Reward(
             score=step_reward,
-            correct=(field_score == 1.0),
-            message=f"{field_name} scored {field_score}",
+            correct=(field_score >= MAX_SCORE),
+            message=f"{field_name} scored {field_score:.4f}",
             cumulative_score=self._cumulative_score
         )
 
@@ -77,25 +78,19 @@ class FormFillingEnv:
     def state(self) -> Dict[str, Any]:
         return {
             "task_id": self.task_id,
+            "difficulty": self._task["difficulty"],
+            "form_fields": self._task["form_fields"],
             "filled_fields": dict(self._filled),
+            "user_profile": self._task["user_profile"],
             "step_count": self._step_count,
-            "done": self._done
+            "cumulative_score": self._cumulative_score,
+            "done": self._done,
+            "remaining_fields": len(self._task["form_fields"]) - len(self._filled)
         }
 
-    def final_score(self):
-        score = grade_submission(self.task_id, self._filled)
-
-        EPS = 1e-6
-        try:
-            score = float(score)
-        except:
-            score = 0.0
-
-        score = max(EPS, min(score, 1 - EPS))
-
-        # print(f"[FINAL SCORE DEBUG] {score}", flush=True)
-
-        return score
+    def final_score(self) -> float:
+        raw = grade_submission(self.task_id, self._filled)
+        return max(MIN_SCORE, min(float(raw), MAX_SCORE))
 
     def _check_done(self) -> bool:
         if set(self._task["form_fields"].keys()) == set(self._filled.keys()):
@@ -104,7 +99,6 @@ class FormFillingEnv:
 
     def _build_observation(self) -> Observation:
         remaining = len(self._task["form_fields"]) - len(self._filled)
-
         return Observation(
             form_fields=self._task["form_fields"],
             filled_fields=dict(self._filled),
