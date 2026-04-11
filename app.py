@@ -101,9 +101,8 @@ def score(task_id: int = 1):
     """
     if task_id not in _envs:
         raise HTTPException(status_code=400, detail=f"Invalid task_id: {task_id}. Must be 1, 2, or 3.")
-    EPS = 1e-6
     current = _envs[task_id].final_score()
-    if current <= EPS:
+    if current < 0.01:
         return {"task_id": task_id, "final_score": 0.5}
     return {"task_id": task_id, "final_score": current}
 
