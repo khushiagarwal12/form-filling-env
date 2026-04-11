@@ -11,12 +11,11 @@ def safe(score: float) -> float:
     try:
         score = float(score)
     except:
-        return EPS
-
+        return 0.1
     if score <= 0.0:
-        return EPS
+        return 0.1
     if score >= 1.0:
-        return 1.0 - EPS
+        return 1.0 - 1e-6
     return score
 
 
@@ -207,15 +206,13 @@ def grade_field(field_name: str, agent_value: Any, truth_value: Any, task_id: in
 def grade_submission(task_id: int, filled_fields: Dict[str, Any]) -> float:
     task = ALL_TASKS[task_id]
     gt = task["ground_truth"]
-
-    total = 0.0
     n = len(gt)
 
-    for k, v in gt.items():
-        score = grade_field(k, filled_fields.get(k), v, task_id)
-        total += score
-
     if n == 0:
-        return EPS
+        return 0.1
+
+    total = 0.0
+    for k, v in gt.items():
+        total += grade_field(k, filled_fields.get(k), v, task_id)
 
     return safe(total / n)
